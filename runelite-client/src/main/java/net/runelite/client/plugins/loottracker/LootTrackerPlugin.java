@@ -36,19 +36,16 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.swing.SwingUtilities;
+
+import com.google.inject.Provides;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.ChatMessageType;
-import net.runelite.api.Client;
-import net.runelite.api.InventoryID;
-import net.runelite.api.ItemComposition;
-import net.runelite.api.ItemContainer;
-import net.runelite.api.ItemID;
-import net.runelite.api.NPC;
-import net.runelite.api.Player;
-import net.runelite.api.SpriteID;
+import net.runelite.api.*;
 import net.runelite.api.events.ChatMessage;
+import net.runelite.api.events.ConfigChanged;
+import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.WidgetLoaded;
 import net.runelite.api.widgets.WidgetID;
+import net.runelite.client.config.ConfigManager;
 import net.runelite.client.events.NpcLootReceived;
 import net.runelite.client.events.PlayerLootReceived;
 import net.runelite.client.game.ItemManager;
@@ -89,6 +86,35 @@ public class LootTrackerPlugin extends Plugin
 	private LootTrackerPanel panel;
 	private NavigationButton navButton;
 	private String eventType;
+
+	@Inject
+	private LootTrackerExportConfig config;
+
+	@Provides
+	LootTrackerExportConfig provideConfig(ConfigManager configManager)
+	{
+		return configManager.getConfig(LootTrackerExportConfig.class);
+	}
+
+	@Subscribe
+	public void updateConfig(ConfigChanged event)
+	{
+		updateConfig();
+	}
+	private void updateConfig()
+	{
+		panel.setConfig(config);
+	}
+	@Subscribe
+	public void onGameStateChanged(GameStateChanged gameStateChanged)
+	{
+		if (config.autoExport()) {
+			GameState state = gameStateChanged.getGameState();
+			if (state == GameState.LOGIN_SCREEN) {
+				panel.export();
+			}
+		}
+	}
 
 	private static Collection<ItemStack> stack(Collection<ItemStack> items)
 	{

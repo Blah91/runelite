@@ -63,8 +63,33 @@ class LootTrackerPanel extends PluginPanel
 	private int overallKills;
 	private int overallGp;
 
+	private LootTrackerBuildCSV csvbuilder;
+	private LootTrackerExportFile fileExport;
+
+	private LootTrackerExportConfig config;
+	public void setConfig(LootTrackerExportConfig config)
+	{
+		this.config = config;
+		csvbuilder.setSeparator(config.getSeparator());
+		fileExport.setConfig(config);
+	}
+	public void export()
+	{
+		fileExport.exportCsv(csvbuilder.generateCsv());
+		csvbuilder.resetCsv();
+		overallKills = 0;
+		overallGp = 0;
+		updateOverall();
+		logsContainer.removeAll();
+		logsContainer.repaint();
+	}
+
 	LootTrackerPanel(final ItemManager itemManager)
 	{
+		this.config = config;
+		csvbuilder = new LootTrackerBuildCSV(config.getSeparator());
+		fileExport = new LootTrackerExportFile(config);
+
 		this.itemManager = itemManager;
 		setBorder(new EmptyBorder(6, 6, 6, 6));
 		setBackground(ColorScheme.DARK_GRAY_COLOR);
@@ -102,6 +127,14 @@ class LootTrackerPanel extends PluginPanel
 			updateOverall();
 			logsContainer.removeAll();
 			logsContainer.repaint();
+
+			csvbuilder.resetCsv();
+		});
+
+		final JMenuItem buildcsv = new JMenuItem("Export CSV");
+		buildcsv.addActionListener(e ->
+		{
+			export();
 		});
 
 		// Create popup menu
@@ -133,6 +166,9 @@ class LootTrackerPanel extends PluginPanel
 
 	void addLog(final String eventName, final int actorLevel, LootTrackerItemEntry[] items)
 	{
+		// Log data to Csv builder
+		csvbuilder.addLog(eventName, actorLevel, items);
+
 		// Remove error and show overall
 		remove(errorPanel);
 		overallPanel.setVisible(true);
@@ -157,6 +193,7 @@ class LootTrackerPanel extends PluginPanel
 			updateOverall();
 			logsContainer.remove(box);
 			logsContainer.repaint();
+			csvbuilder.resetCsv();
 		});
 
 		// Create popup menu
